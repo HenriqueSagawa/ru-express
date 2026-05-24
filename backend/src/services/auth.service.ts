@@ -170,7 +170,7 @@ export async function forgotPassword(data: ForgotPasswordInput) {
 }
 
 export async function resetPassword(data: ResetPasswordInput) {
-  const user = await prisma.user.findUnique({ where: { email: data.email } });
+  const user = await prisma.user.findUnique({ where: { email: data.email }, include: { passwordResetCode: true } });
 
   if (!user) throw new AppError("Email não encontrado.", 404);
 
