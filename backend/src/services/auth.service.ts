@@ -60,7 +60,7 @@ export async function verifyEmail(data: VerifyEmailInput) {
   });
 
   if (!user) throw new AppError("Credenciais inválidas.", 401);
-  if (!user.isVerified) throw new AppError("Email não verificado.", 401);
+  if (!user.isVerified) throw new AppError("Email já verificado.", 401);
 
   const record = user.verificationCode;
   if (!record)
