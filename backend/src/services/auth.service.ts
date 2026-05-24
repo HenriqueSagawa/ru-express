@@ -14,8 +14,6 @@ import type {
   VerifyEmailInput,
 } from "../validators/auth.validator";
 import { env } from "../config/env";
-import { send } from "node:process";
-import { th } from "zod/locales";
 
 const JWT_SECRET = env.JWT_SECRET;
 const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN || "1h";
