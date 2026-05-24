@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  isVerified   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  verificationCode VerificationCode?
+  verificationCode    VerificationCode?
+  passwordResetCode PasswordResetCode?
+  
 
   @@map("users")
 }
@@ -31,4 +33,15 @@ model VerificationCode {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("verification_codes")
+}
+
+model PasswordResetCode {
+  id        String   @id @default(uuid())
+  code      String
+  expiresAt DateTime
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_codes")
 }
