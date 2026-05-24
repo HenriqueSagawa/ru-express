@@ -5,6 +5,8 @@ import {
   loginSchema,
   verifyEmailSchema,
   resendCodeSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "../validators/auth.validator";
 
 export async function register(
@@ -63,6 +65,26 @@ export async function me(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = (req as Request & { userId: string }).userId;
     const result = await authService.getMe(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function forgotPassword(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = forgotPasswordSchema.parse(req.body);
+    const result = await authService.forgotPassword(body);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = resetPasswordSchema.parse(req.body);
+    const result = await authService.resetPassword(body);
     res.status(200).json(result);
   } catch (error) {
     next(error);
