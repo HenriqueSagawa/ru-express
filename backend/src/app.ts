@@ -7,6 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/health", (req, res) => {
+  console.log()
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
