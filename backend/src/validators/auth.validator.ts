@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { email, z } from "zod";
 
 export const registerSchema = z.object({
   name: z
@@ -34,7 +34,30 @@ export const resendCodeSchema = z.object({
   email: z.email("Email inválido"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.email("Email inválido"),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.email("Email inválido"),
+  code: z
+    .string()
+    .length(6, "O código de verificação deve conter exatamente 6 caracteres")
+    .regex(/^\d+$/, "O código de verificação deve conter apenas números"),
+  newPassword: z
+    .string({ message: "A nova senha é obrigatória" })
+    .min(6, "A nova senha deve conter ao menos 6 caracteres")
+    .regex(/[A-Z]/, "A nova senha deve conter ao menos uma letra maiúscula")
+    .regex(/[0-9]/, "A nova senha deve conter ao menos um número")
+    .regex(
+      /[@$!%*?&]/,
+      "A nova senha deve conter ao menos um caractere especial (@$!%*?&)",
+    ),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type ResendCodeInput = z.infer<typeof resendCodeSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type ForgotPasswordInput = z.infer<typeof resetPasswordSchema>;
