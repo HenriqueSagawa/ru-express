@@ -7,6 +7,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  ADMIN
+  STAFF
+  STUDENT
+}
+
 model User {
   id         String   @id @default(uuid())
   name       String
@@ -15,12 +21,148 @@ model User {
   isVerified Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  role       UserRole @default(STUDENT)
 
-  verificationCode    VerificationCode?
+  verificationCode  VerificationCode?
   passwordResetCode PasswordResetCode?
-  
+  student           Student?
+  staff             Staff?
 
   @@map("users")
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+model Student {
+  id                 String        @id @default(uuid())
+  userId             String        @unique
+  registrationNumber String        @unique
+  course             String?
+  status             StudentStatus @default(ACTIVE)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tickets   MealTicket[]
+  purchases Purchase[]
+  qrTokens  QrToken[]
+  accesses  MealAccess[]
+
+  @@map("students")
+}
+
+model Staff {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  position  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accesses MealAccess[]
+
+  @@map("staff")
+}
+
+enum TicketStatus {
+  AVAILABLE
+  USED
+  CANCELED
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+}
+
+model MealTicket {
+  id         String       @id @default(uuid())
+  studentId  String
+  status     TicketStatus @default(AVAILABLE)
+  mealType   MealType?
+  purchaseId String?
+  usedAt     DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  student  Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  purchase Purchase?   @relation(fields: [purchaseId], references: [id])
+  access   MealAccess?
+}
+
+enum PaymentMethod {
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+}
+
+model Purchase {
+  id            String        @id @default(uuid())
+  studentId     String
+  quantity      Int
+  unitPrice     Decimal
+  totalAmount   Decimal
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tickets MealTicket[]
+}
+
+model QrToken {
+  id        String    @id @default(uuid())
+  studentId String
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+enum AccessStatus {
+  ALLOWED
+  DENIED
+}
+
+model MealAccess {
+  id          String       @id @default(uuid())
+  studentId   String
+  ticketId    String       @unique
+  validatorId String?
+  mealType    MealType
+  accessDate  DateTime     @default(now())
+  status      AccessStatus
+  reason      String?
+  createdAt   DateTime     @default(now())
+
+  student   Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  ticket    MealTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  validator Staff?     @relation(fields: [validatorId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String?
+  action      String
+  entity      String
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
 }
 
 model VerificationCode {
