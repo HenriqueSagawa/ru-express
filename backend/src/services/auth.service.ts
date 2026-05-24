@@ -6,11 +6,13 @@ import {
   generateVerificationCode,
   getCodeExpiration,
 } from "../utils/generateCode";
-import { sendVerificationEmail } from "./email.service";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./email.service";
 import type {
+  ForgotPasswordInput,
   LoginInput,
   RegisterInput,
   ResendCodeInput,
+  ResetPasswordInput,
   VerifyEmailInput,
 } from "../validators/auth.validator";
 import { env } from "../config/env";
@@ -138,6 +140,61 @@ export async function getMe(userId: string) {
   if (!user) throw new AppError("Usuário não encontrado.", 404);
 
   return user;
+}
+
+export async function forgotPassword(data: ForgotPasswordInput) {
+  const user = await prisma.user.findUnique({ where: { email: data.email } });
+
+  if (!user || !user.isVerified) {
+    return {
+      message:
+        "Se o email estiver registrado e verificado, um código de recuperação será enviado.",
+    };
+  }
+
+  const code = generateVerificationCode();
+  const expiresAt = getCodeExpiration();
+
+  await prisma.passwordResetCode.upsert({
+    where: { userId: user.id },
+    update: { code, expiresAt },
+    create: { userId: user.id, code, expiresAt },
+  });
+
+  await sendPasswordResetEmail({ to: user.email, name: user.name, code });
+
+  return {
+    message:
+      "Se o email estiver registrado e verificado, um código de recuperação será enviado.",
+  };
+}
+
+export async function resetPassword(data: ResetPasswordInput) {
+  const user = await prisma.user.findUnique({ where: { email: data.email } });
+
+  if (!user) throw new AppError("Email não encontrado.", 404);
+
+  const record = user.passwordResetCode;
+
+  if (!record) throw new AppError("Nenhum código de recuperação pendente. Solicite um novo.", 400);
+
+  if (new Date() > record.expiresAt) {
+    await prisma.passwordResetCode.delete({ where: { userId: record.userId } });
+    throw new AppError("Código de recuperação expirado. Solicite um novo.", 400);
+  }
+
+  if (record.code !== data.code) throw new AppError("Código de recuperação inválido.", 400);
+
+  const newPasswordHash = await bcrypt.hash(data.newPassword, 12);
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: user.id }, data: { password: newPasswordHash } }),
+    prisma.passwordResetCode.delete({ where: { userId: user.id } }),
+  ]);
+
+  return {
+    message: "Senha resetada com sucesso! Você já pode fazer login com a nova senha.",
+  };
 }
 
 async function issueAndSendCode(userId: string, email: string, name: string) {
